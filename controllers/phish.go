@@ -147,7 +147,7 @@ func (ps *PhishingServer) TrackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	rid := ctx.Get(r, "rid").(string)
+	rid := ctx.Get(r, models.RecipientParameter).(string)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Check for a transparency request
@@ -181,7 +181,7 @@ func (ps *PhishingServer) ReportHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	rid := ctx.Get(r, "rid").(string)
+	rid := ctx.Get(r, models.RecipientParameter).(string)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Check for a transparency request
@@ -229,7 +229,7 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	rid := ctx.Get(r, "rid").(string)
+	rid := ctx.Get(r, models.RecipientParameter).(string)
 	c := ctx.Get(r, "campaign").(models.Campaign)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
@@ -374,7 +374,7 @@ func setupContext(r *http.Request) (*http.Request, error) {
 	d.Browser["address"] = ip
 	d.Browser["user-agent"] = r.Header.Get("User-Agent")
 
-	r = ctx.Set(r, "rid", rid)
+	r = ctx.Set(r, models.RecipientParameter, rid)
 	r = ctx.Set(r, "result", rs)
 	r = ctx.Set(r, "campaign", c)
 	r = ctx.Set(r, "details", d)
