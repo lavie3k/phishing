@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"net/mail"
 	"regexp"
 	"time"
@@ -11,7 +12,8 @@ import (
 func (s *ModelsSuite) TestGenerateResultId(c *check.C) {
 	r := Result{}
 	r.GenerateId(db)
-	match, err := regexp.Match("[a-zA-Z0-9]{7}", []byte(r.RId))
+	pattern := fmt.Sprintf("[a-zA-Z0-9]{%d}", RIdLength)
+	match, err := regexp.Match(pattern, []byte(r.RId))
 	c.Assert(err, check.Equals, nil)
 	c.Assert(match, check.Equals, true)
 }

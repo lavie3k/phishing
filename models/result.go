@@ -38,6 +38,10 @@ type Result struct {
 	BaseRecipient
 }
 
+// RIdLength is the configured length (in chars) of generated result IDs (RId).
+// Exported so other packages (e.g. imap) can build compatible regexes.
+const RIdLength = 7
+
 func (r *Result) createEvent(status string, details interface{}) (*Event, error) {
 	e := &Event{Email: r.Email, Message: status}
 	if details != nil {
@@ -172,7 +176,7 @@ func (r *Result) UpdateGeo(addr string) error {
 
 func generateResultId() (string, error) {
 	const alphaNum = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	k := make([]byte, 7)
+	k := make([]byte, RIdLength)
 	for i := range k {
 		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(alphaNum))))
 		if err != nil {

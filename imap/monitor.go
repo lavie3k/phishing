@@ -9,6 +9,7 @@ package imap
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -24,7 +25,9 @@ import (
 // Pattern for GoPhish emails e.g ?rid=AbC1234
 // We include the optional quoted-printable 3D at the front, just in case decoding fails. e.g ?rid=3DAbC1234
 // We also include alternative URL encoded representations of '=' and '?' to handle Microsoft ATP URLs e.g %3Frid%3DAbC1234
-var goPhishRegex = regexp.MustCompile("((\\?|%3F)rid(=|%3D)(3D)?([A-Za-z0-9]{7}))")
+// Build the regex using the canonical RId length from models so the IMAP
+// detector accepts the same RId format the server generates.
+var goPhishRegex = regexp.MustCompile(fmt.Sprintf("((\\?|%%3F)rid(=|%%3D)(3D)?([A-Za-z0-9]{%d}))", models.RIdLength))
 
 // Monitor is a worker that monitors IMAP servers for reported campaign emails
 type Monitor struct {

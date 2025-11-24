@@ -32,6 +32,8 @@ COPY --from=build-golang /go/src/github.com/gophish/gophish/ ./
 COPY --from=build-js /build/static/js/dist/ ./static/js/dist/
 COPY --from=build-js /build/static/css/dist/ ./static/css/dist/
 COPY --from=build-golang /go/src/github.com/gophish/gophish/config.json ./
+# Ensure shell scripts have Unix (LF) line endings and are executable
+RUN if [ -f ./docker/run.sh ]; then sed -i 's/\r$//' ./docker/run.sh && chmod +x ./docker/run.sh; fi
 RUN chown app. config.json
 
 RUN setcap 'cap_net_bind_service=+ep' /opt/gophish/gophish
