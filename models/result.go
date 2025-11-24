@@ -40,7 +40,8 @@ type Result struct {
 
 // RIdLength is the configured length (in chars) of generated result IDs (RId).
 // Exported so other packages (e.g. imap) can build compatible regexes.
-const RIdLength = 7
+// Changed from 7 to 10 per request.
+const RIdLength = 10
 
 func (r *Result) createEvent(status string, details interface{}) (*Event, error) {
 	e := &Event{Email: r.Email, Message: status}
