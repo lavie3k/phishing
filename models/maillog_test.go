@@ -244,14 +244,14 @@ func (s *ModelsSuite) TestMailLogGetSmtpFrom(ch *check.C) {
 
 	got, err := email.NewEmailFromReader(msgBuff)
 	ch.Assert(err, check.Equals, nil)
-	ch.Assert(got.From, check.Equals, "spoofing@example.com")
+	ch.Assert(got.From, check.Equals, "vinhnh6@outlook.com")
 }
 
 func (s *ModelsSuite) TestMailLogGenerate(ch *check.C) {
 	campaign := s.createCampaign(ch)
 	result := campaign.Results[0]
 	expected := &email.Email{
-		From:    "test@test.com", // Default smtp.FromAddress
+		From:    "vinhnh6@outlook.com", // Default smtp.FromAddress
 		Subject: fmt.Sprintf("%s - Subject", result.RId),
 		Text:    []byte(fmt.Sprintf("%s - Text", result.RId)),
 		HTML:    []byte(fmt.Sprintf("%s - HTML", result.RId)),
@@ -264,7 +264,7 @@ func (s *ModelsSuite) TestMailLogGenerate(ch *check.C) {
 }
 
 func (s *ModelsSuite) TestMailLogGenerateTransparencyHeaders(ch *check.C) {
-	s.config.ContactAddress = "test@test.com"
+	s.config.ContactAddress = "vinhnh6@outlook.com"
 	expectedHeaders := map[string]string{
 		"X-Mailer":          config.ServerName,
 		"X-Gophish-Contact": s.config.ContactAddress,
@@ -284,7 +284,7 @@ func (s *ModelsSuite) TestMailLogGenerateOverrideTransparencyHeaders(ch *check.C
 	smtp := SMTP{
 		Name:        "Test SMTP",
 		Host:        "1.1.1.1:25",
-		FromAddress: "foo@example.com",
+		FromAddress: "vinhnh6@outlook.com",
 		UserId:      1,
 		Headers: []Header{
 			Header{Key: "X-Gophish-Contact", Value: ""},

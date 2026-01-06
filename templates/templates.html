@@ -16,7 +16,7 @@
     </div>
     <div id="emptyMessage" class="row" style="display:none;">
         <div class="alert alert-info">
-            No templates yet. Let's create one!
+            Chưa có template nào cả. Tạo thật nhiều vào bro!
         </div>
     </div>
     <div class="row">
@@ -100,6 +100,31 @@
                     </tbody>
                 </table>
                 <hr>
+                <!-- Template Variables Help (Added) -->
+                <div class="panel panel-info" id="template-vars-help" style="margin-top:10px;">
+                    <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#vars-body">
+                        <strong>Hướng dẫn biến template</strong>
+                        <span class="pull-right"><i class="fa fa-chevron-down"></i></span>
+                    </div>
+                    <div id="vars-body" class="panel-collapse collapse">
+                        <div class="panel-body" style="font-size:12px; line-height:1.5;">
+                            <p>Dùng các biến dưới đây trong phần Text hoặc HTML để tự động cá nhân hoá email:</p>
+                            <ul style="padding-left:18px;">
+                                <li><code>{{`{{.FirstName}}`}}</code>, <code>{{`{{.LastName}}`}}</code>, <code>{{`{{.Email}}`}}</code>, <code>{{`{{.Position}}`}}</code> – Thông tin người nhận.</li>
+                                <li><code>{{`{{.RId}}`}}</code> – Mã nhận dạng người nhận (tham số <code>rid</code> trong URL).</li>
+                                <li><code>{{`{{.URL}}`}}</code> – Link phishing đầy đủ (có <code>rid</code>). Dùng cho nút hoặc thẻ <code>&lt;a&gt;</code>.</li>
+                                <li><code>{{`{{.TrackingURL}}`}}</code> – Link theo dõi (dùng cho tracker ảnh ẩn).</li>
+                                <li><code>{{`{{.Tracker}}`}}</code> – Thẻ &lt;img&gt; ẩn tự động gửi request track (thêm/bỏ bằng “Add Tracking Image”).</li>
+                                <li><code>{{`{{.QRURL}}`}}</code> – Mã QR dạng <em>data URI</em> (có thể bị chặn ở một số webmail).</li>
+                                <li><code>{{`{{.QRURLCID}}`}}</code> – Mã QR dùng <em>CID attachment</em>; tương thích rộng hơn (chèn nếu cần hiển thị chắc chắn).</li>
+                                <li><code>{{`{{.BaseURL}}`}}</code> – Domain gốc (không có path/query).</li>
+                                <li><code>{{`{{.From}}`}}</code> – Tên hiển thị hoặc địa chỉ gửi.</li>
+                            </ul>
+                            <p><strong>Mẹo:</strong> Nếu QR không hiển thị với <code>{{`{{.QRURL}}`}}</code>, hãy đổi sang <code>{{`{{.QRURLCID}}`}}</code>. Bạn có thể kết hợp: “Nếu không thấy ảnh QR hãy bấm link: <code>{{`{{.URL}}`}}</code>”.</p>
+                            <p style="margin-bottom:0"><em>Các biến được render bởi Go template engine – tránh thêm giao thức trước <code>{{`{{.URL}}`}}</code> vì hệ thống đã xử lý.</em></p>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" data-dismiss="modal" class="btn btn-default" onclick="dismiss()">Cancel</button>

@@ -22,9 +22,9 @@ import (
 	"github.com/gophish/gophish/models"
 )
 
-// Pattern for GoPhish emails e.g ?vpsid=AbC12345678
-// We include the optional quoted-printable 3D at the front, just in case decoding fails. e.g ?vpsid=3DAbC12345678
-// We also include alternative URL encoded representations of '=' and '?' to handle Microsoft ATP URLs e.g %3Fvpsid%3DAbC12345678
+// Pattern for GoPhish emails e.g ?r_id=AbC12345678
+// We include the optional quoted-printable 3D at the front, just in case decoding fails. e.g ?r_id=3DAbC12345678
+// We also include alternative URL encoded representations of '=' and '?' to handle Microsoft ATP URLs e.g %3Frid%3DAbC12345678
 // Build the regex using the recipient parameter and RId length so the IMAP
 // detector accepts the same format the server generates.
 var goPhishRegex = regexp.MustCompile(fmt.Sprintf("((\\?|%%3F)%s(=|%%3D)(3D)?([A-Za-z0-9]{%d}))", models.RecipientParameter, models.RIdLength))
@@ -154,7 +154,7 @@ func checkForNewEmails(im models.IMAP) {
 				}
 			}
 
-			rids, err := matchEmail(m.Email) // Search email Text, HTML, and each attachment for vpsid parameters
+			rids, err := matchEmail(m.Email) // Search email Text, HTML, and each attachment for r_id parameters
 
 			if err != nil {
 				log.Errorf("Error searching email for rids from user '%s': %s", m.Email.From, err.Error())
@@ -165,16 +165,16 @@ func checkForNewEmails(im models.IMAP) {
 				log.Infof("User '%s' reported email with subject '%s'. This is not a GoPhish campaign; you should investigate it.", m.Email.From, m.Email.Subject)
 			}
 			for rid := range rids {
-				log.Infof("User '%s' reported email with vpsid %s", m.Email.From, rid)
+				log.Infof("User '%s' reported email with r_id %s", m.Email.From, rid)
 				result, err := models.GetResult(rid)
 				if err != nil {
-					log.Error("Error reporting GoPhish email with vpsid ", rid, ": ", err.Error())
+					log.Error("Error reporting GoPhish email with r_id ", rid, ": ", err.Error())
 					reportingFailed = append(reportingFailed, m.SeqNum)
 					continue
 				}
 				err = result.HandleEmailReport(models.EventDetails{})
 				if err != nil {
-					log.Error("Error updating GoPhish email with vpsid ", rid, ": ", err.Error())
+					log.Error("Error updating GoPhish email with r_id ", rid, ": ", err.Error())
 					continue
 				}
 				if im.DeleteReportedCampaignEmail {

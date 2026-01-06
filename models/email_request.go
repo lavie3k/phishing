@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"net/mail"
 
 	"github.com/gophish/gomail"
@@ -166,6 +167,20 @@ func (s *EmailRequest) Generate(msg *gomail.Message) error {
 			msg.SetBody("text/html", html)
 		} else {
 			msg.AddAlternative("text/html", html)
+		}
+
+		// If the HTML references the CID QR, embed a dynamic QR attachment.
+		if strings.Contains(html, "cid:qr.png") {
+			if b64, err := GenerateQRBase64(ptx.URL, 256); err == nil {
+				a := Attachment{
+					Name:    "qr.png",
+					Type:    "image/png",
+					Content: b64,
+				}
+				addAttachment(msg, a, ptx)
+			} else {
+				log.Error(err)
+			}
 		}
 	}
 

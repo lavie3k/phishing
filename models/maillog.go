@@ -254,6 +254,20 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 		} else {
 			msg.AddAlternative("text/html", html)
 		}
+
+		// If the HTML references the CID QR, embed a dynamic QR attachment.
+		if strings.Contains(html, "cid:qr.png") {
+			if b64, err := GenerateQRBase64(ptx.URL, 256); err == nil {
+				a := Attachment{
+					Name:    "qr.png",
+					Type:    "image/png",
+					Content: b64,
+				}
+				addAttachment(msg, a, ptx)
+			} else {
+				log.Warn(err)
+			}
+		}
 	}
 	// Attach the files
 	for _, a := range c.Template.Attachments {

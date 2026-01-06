@@ -82,7 +82,7 @@ func (d *RestrictedDialer) Dialer() *net.Dialer {
 // defaultDeny represents the list of IP ranges that we want to block unless
 // explicitly overriden.
 var defaultDeny = []string{
-	"169.254.0.0/16", // Link-local (used for VPS instance metadata)
+	"169.254.0.0/16", // Link-local (used for instance metadata)
 }
 
 // allInternal represents all internal hosts such that the only connections

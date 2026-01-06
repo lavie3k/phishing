@@ -44,8 +44,7 @@ type Result struct {
 const RIdLength = 10
 
 // ResultParamName provides the shared query parameter name for result IDs.
-// Renamed from "rid" to "vpsid".
-const ResultParamName = "vpsid"
+const ResultParamName = "rid"
 
 func (r *Result) createEvent(status string, details interface{}) (*Event, error) {
 	e := &Event{Email: r.Email, Message: status}

@@ -2,10 +2,20 @@ package models
 
 import (
 	"bytes"
+	"encoding/base64"
 	"net/mail"
 	"net/url"
 	"path"
 	"text/template"
+
+	qrcode "github.com/skip2/go-qrcode"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/png"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/math/fixed"
 )
 
 // TemplateContext is an interface that allows both campaigns and email
@@ -24,6 +34,12 @@ type PhishingTemplateContext struct {
 	TrackingURL string
 	RId         string
 	BaseURL     string
+	// QRURL is an inline base64-encoded PNG <img> tag representing a QR code of {{.URL}}.
+	// It is safe to embed directly in HTML email templates.
+	QRURL       string
+	// QRURLCID is a convenience <img> tag that references the QR as an embedded CID attachment.
+	// When used, the mail generator should embed a PNG attachment named 'qr.png'.
+	QRURLCID    string
 	BaseRecipient
 }
 
@@ -61,6 +77,40 @@ func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, rid string
 	trackingURL.Path = path.Join(trackingURL.Path, "/track")
 	trackingURL.RawQuery = q.Encode()
 
+	// Generate a QR code for the phishing URL. If QR generation fails for any reason,
+	// we keep QRURL empty to avoid interrupting normal email generation.
+	var qrTag string
+	// Tăng độ phân giải, thêm border, bo góc, đổ bóng để QR đẹp hơn
+	if qr, err := qrcode.New(phishURL.String(), qrcode.High); err == nil {
+		qr.DisableBorder = false
+		img := qr.Image(384)
+
+		rgba := image.NewRGBA(img.Bounds())
+		draw.Draw(rgba, img.Bounds(), img, image.Point{}, draw.Src)
+		label := "Scan QR"
+		col := color.RGBA{128, 0, 192, 255} // tím đậm
+		face := basicfont.Face7x13
+		labelWidth := len(label) * 7 // 7px/char
+		x := (rgba.Bounds().Dx() - labelWidth) / 2
+		y := (rgba.Bounds().Dy()+13)/2 // 13px chiều cao font
+		d := &font.Drawer{
+			Dst:  rgba,
+			Src:  image.NewUniform(col),
+			Face: face,
+			Dot:  fixed.P(x, y),
+		}
+		d.DrawString(label)
+
+		buf := new(bytes.Buffer)
+		if err := png.Encode(buf, rgba); err == nil {
+			b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+			qrTag = `<img alt='' style='display:block;margin:16px auto;border-radius:16px;box-shadow:0 2px 12px #0002;border:4px solid #fff;width:256px;height:256px;background:#fff' width='256' height='256' src='data:image/png;base64,` + b64 + `'/>`
+		}
+	}
+
+	// Convenience CID-based tag (requires embedding an attachment named 'qr.png')
+	cidTag := `<img alt='' style='display:block;margin:16px auto;border-radius:16px;box-shadow:0 2px 12px #0002;border:4px solid #fff;width:256px;height:256px;background:#fff' width='256' height='256' src='cid:qr.png'/>`
+
 	return PhishingTemplateContext{
 		BaseRecipient: r,
 		BaseURL:       baseURL.String(),
@@ -69,7 +119,19 @@ func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, rid string
 		Tracker:       "<img alt='' style='display: none' src='" + trackingURL.String() + "'/>",
 		From:          fn,
 		RId:           rid,
+		QRURL:         qrTag,
+		QRURLCID:      cidTag,
 	}, nil
+}
+
+// GenerateQRBase64 returns a base64-encoded PNG QR image for the given URL.
+// The size parameter specifies the width/height in pixels.
+func GenerateQRBase64(url string, size int) (string, error) {
+	png, err := qrcode.Encode(url, qrcode.Medium, size)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(png), nil
 }
 
 // ExecuteTemplate creates a templated string based on the provided

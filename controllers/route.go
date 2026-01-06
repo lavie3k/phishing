@@ -378,18 +378,18 @@ func (as *AdminServer) Login(w http.ResponseWriter, r *http.Request) {
 		u, err := models.GetUserByUsername(username)
 		if err != nil {
 			log.Error(err)
-			as.handleInvalidLogin(w, r, "Invalid Username/Password")
+			as.handleInvalidLogin(w, r, "Bro định làm gì đấy!")
 			return
 		}
 		// Validate the user's password
 		err = auth.ValidatePassword(password, u.Hash)
 		if err != nil {
 			log.Error(err)
-			as.handleInvalidLogin(w, r, "Invalid Username/Password")
+			as.handleInvalidLogin(w, r, "Bro định làm gì đấy!")
 			return
 		}
 		if u.AccountLocked {
-			as.handleInvalidLogin(w, r, "Account Locked")
+			as.handleInvalidLogin(w, r, "Bro định làm gì đấy!")
 			return
 		}
 		u.LastLogin = time.Now().UTC()
@@ -408,7 +408,7 @@ func (as *AdminServer) Login(w http.ResponseWriter, r *http.Request) {
 func (as *AdminServer) Logout(w http.ResponseWriter, r *http.Request) {
 	session := ctx.Get(r, "session").(*sessions.Session)
 	delete(session.Values, "id")
-	Flash(w, r, "success", "You have successfully logged out")
+	Flash(w, r, "success", "Goodluck !")
 	session.Save(r, w)
 	http.Redirect(w, r, "/login", http.StatusFound)
 }
