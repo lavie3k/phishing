@@ -57,6 +57,8 @@ type CampaignSummary struct {
 	CompletedDate time.Time     `json:"completed_date"`
 	Status        string        `json:"status"`
 	Name          string        `json:"name"`
+	Groups        []Group       `json:"groups"`
+	SMTP          SMTP          `json:"smtp"`
 	Stats         CampaignStats `json:"stats"`
 }
 
@@ -330,7 +332,27 @@ func GetCampaignSummaries(uid int64) (CampaignSummaries, error) {
 		log.Error(err)
 		return overview, err
 	}
+	// Bổ sung thông tin Groups và SMTP cho từng campaign summary
 	for i := range cs {
+		// Lấy Groups
+		var groups []Group
+		err := db.Table("group_campaigns").Select("groups.id, groups.name").
+			Joins("JOIN groups ON groups.id = group_campaigns.group_id").
+			Where("group_campaigns.campaign_id = ?", cs[i].Id).Scan(&groups).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			log.Error(err)
+		}
+		cs[i].Groups = groups
+		// Lấy SMTP
+		var smtp SMTP
+		err = db.Table("campaigns").Select("smtp.id, smtp.name").
+			Joins("JOIN smtp ON smtp.id = campaigns.smtp_id").
+			Where("campaigns.id = ?", cs[i].Id).Scan(&smtp).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			log.Error(err)
+		}
+		cs[i].SMTP = smtp
+		// Lấy Stats
 		s, err := getCampaignStats(cs[i].Id)
 		if err != nil {
 			log.Error(err)
