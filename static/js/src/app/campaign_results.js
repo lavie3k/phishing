@@ -753,57 +753,45 @@ function load() {
                 // Setup the results table
                 resultsTable = $("#resultsTable").DataTable({
                     destroy: true,
-                    "order": [
-                        [2, "asc"]
-                    ],
-                    columnDefs: [{
-                            orderable: false,
-                            targets: "no-sort"
-                        }, {
-                            className: "details-control",
-                            "targets": [1]
-                        }, {
-                            "visible": false,
-                            "targets": [0, 8]
-                        },
-                        {
-                            "render": function (data, type, row) {
-                                return createStatusLabel(data, row[8])
-                            },
-                            "targets": [6]
-                        },
-                        {
-                            className: "text-center",
-                            "render": function (reported, type, row) {
-                                if (type == "display") {
-                                    if (reported) {
-                                        return "<i class='fa fa-check-circle text-center text-success'></i>"
-                                    }
-                                    return "<i role='button' class='fa fa-times-circle text-center text-muted' onclick='report_mail(\"" + row[0] + "\", \"" + campaign.id + "\");'></i>"
+                    order: [[6, "desc"]],
+                    columnDefs: [
+                        { orderable: false, targets: "no-sort" },
+                        { className: "details-control", targets: [1] },
+                        { visible: false, targets: [0, 9] },
+                        { render: function (data, type, row) { return createStatusLabel(data, row[8]); }, targets: [7] },
+                        { className: "text-center", render: function (reported, type, row) {
+                            if (type == "display") {
+                                if (reported) {
+                                    return "<i class='fa fa-check-circle text-center text-success'></i>";
                                 }
-                                return reported
-                            },
-                            "targets": [7]
-                        }
+                                return "<i role='button' class='fa fa-times-circle text-center text-muted' onclick='report_mail(\"" + row[0] + "\", \"" + campaign.id + "\");'></i>";
+                            }
+                            return reported;
+                        }, targets: [8] }
+                    ],
+                    columns: [
+                        null, // Result ID
+                        null, // caret
+                        null, // First Name
+                        null, // Last Name
+                        null, // Email
+                        null, // Position
+                        { type: "date" }, // Email Sent
+                        null, // Status
+                        null, // Reported
+                        null  // Hidden
                     ]
                 });
-                resultsTable.clear();
-                var email_series_data = {}
-                var timeline_series_data = []
-                Object.keys(statusMapping).forEach(function (k) {
-                    email_series_data[k] = 0
-                });
-                $.each(campaign.results, function (i, result) {
-                    resultsTable.row.add([
+                resultsTable.row.add([
                         result.id,
                         "<i id=\"caret\" class=\"fa fa-caret-right\"></i>",
                         escapeHtml(result.first_name) || "",
                         escapeHtml(result.last_name) || "",
                         escapeHtml(result.email) || "",
                         escapeHtml(result.position) || "",
+                        moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a'), // Email Sent
                         result.status,
-                        result.reported,
-                        moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
+                        result.reported
                     ])
                     email_series_data[result.status]++;
                     if (result.reported) {
