@@ -371,9 +371,9 @@ function renderTimeline(data) {
         "last_name": data[3],
         "email": data[4],
         "position": data[5],
-        "status": data[6],
-        "reported": data[7],
-        "send_date": data[8]
+        "send_date": data[6],
+        "status": data[7],
+        "reported": data[8]
     }
     results = '<div class="timeline col-sm-12 well well-lg">' +
         '<h6>Timeline for ' + escapeHtml(record.first_name) + ' ' + escapeHtml(record.last_name) +
@@ -697,9 +697,9 @@ function poll() {
                 var rid = rowData[0]
                 $.each(campaign.results, function (j, result) {
                     if (result.id == rid) {
-                        rowData[8] = moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
-                        rowData[7] = result.reported
-                        rowData[6] = result.status
+                        rowData[6] = moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
+                        rowData[7] = result.status
+                        rowData[8] = result.reported
                         resultsTable.row(i).data(rowData)
                         if (row.child.isShown()) {
                             $(row.node()).find("#caret").removeClass("fa-caret-right")
@@ -757,8 +757,8 @@ function load() {
                     columnDefs: [
                         { orderable: false, targets: "no-sort" },
                         { className: "details-control", targets: [1] },
-                        { visible: false, targets: [0, 9] },
-                        { render: function (data, type, row) { return createStatusLabel(data, row[8]); }, targets: [7] },
+                        { visible: false, targets: [0] },
+                        { render: function (data, type, row) { return createStatusLabel(data, row[6]); }, targets: [7] },
                         { className: "text-center", render: function (reported, type, row) {
                             if (type == "display") {
                                 if (reported) {
@@ -778,11 +778,17 @@ function load() {
                         null, // Position
                         { type: "date" }, // Email Sent
                         null, // Status
-                        null, // Reported
-                        null  // Hidden
+                        null  // Reported
                     ]
                 });
-                resultsTable.row.add([
+                resultsTable.clear();
+                var email_series_data = {}
+                var timeline_series_data = []
+                Object.keys(statusMapping).forEach(function (k) {
+                    email_series_data[k] = 0
+                });
+                $.each(campaign.results, function (i, result) {
+                    resultsTable.row.add([
                         result.id,
                         "<i id=\"caret\" class=\"fa fa-caret-right\"></i>",
                         escapeHtml(result.first_name) || "",

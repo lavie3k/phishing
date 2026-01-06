@@ -10,6 +10,7 @@ var gulp = require('gulp'),
     uglify = require('gulp-uglify-es').default,
     cleanCSS = require('gulp-clean-css'),
     babel = require('gulp-babel'),
+    child_process = require('child_process'),
 
     js_directory = 'static/js/src/',
     css_directory = 'static/css/',
@@ -61,9 +62,6 @@ scripts = function () {
             app_directory + 'settings.js',
             app_directory + 'templates.js',
             app_directory + 'gophish.js',
-            app_directory + 'users.js',
-            app_directory + 'webhooks.js',
-            app_directory + 'passwords.js'
         ])
         .pipe(rename({
             suffix: '.min'
@@ -72,6 +70,27 @@ scripts = function () {
             console.log(e);
         }))
         .pipe(gulp.dest(dest_js_directory + 'app/'));
+}
+
+webpack = function () {
+    return new Promise(function (resolve, reject) {
+        var env = Object.assign({}, process.env, {
+            NODE_OPTIONS: ((process.env.NODE_OPTIONS || '') + ' --openssl-legacy-provider').trim()
+        })
+        child_process.exec('node ./node_modules/webpack/bin/webpack.js --mode production', { env: env }, function (err, stdout, stderr) {
+            if (stdout) {
+                process.stdout.write(stdout);
+            }
+            if (stderr) {
+                process.stderr.write(stderr);
+            }
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve();
+        });
+    });
 }
 
 styles = function () {
@@ -99,5 +118,6 @@ styles = function () {
 exports.vendorjs = vendorjs
 exports.scripts = scripts
 exports.styles = styles
-exports.build = gulp.parallel(vendorjs, scripts, styles)
+exports.webpack = webpack
+exports.build = gulp.series(webpack, gulp.parallel(vendorjs, scripts, styles))
 exports.default = exports.build
