@@ -380,18 +380,26 @@ $(document).ready(function () {
                 $("#campaignTableArchive").show()
 
                 activeCampaignsTable = $("#campaignTable").DataTable({
+                    autoWidth: false,
                     columnDefs: [{
                         orderable: false,
                         targets: "no-sort"
+                    }, {
+                        width: "200px",
+                        targets: -1
                     }],
                     order: [
                         [3, "desc"]
                     ]
                 });
                 archivedCampaignsTable = $("#campaignTableArchive").DataTable({
+                    autoWidth: false,
                     columnDefs: [{
                         orderable: false,
                         targets: "no-sort"
+                    }, {
+                        width: "200px",
+                        targets: -1
                     }],
                     order: [
                         [3, "desc"]
