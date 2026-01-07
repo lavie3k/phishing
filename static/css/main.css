@@ -492,6 +492,15 @@ td.details-control {
     cursor: pointer;
 }
 
+.campaign-actions {
+    display: inline-flex;
+    white-space: nowrap;
+}
+
+.campaign-actions.btn-group > .btn {
+    float: none;
+}
+
 .timeline {
     text-align: left;
     background-color: #ffffff;
