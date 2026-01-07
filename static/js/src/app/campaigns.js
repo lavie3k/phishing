@@ -162,7 +162,7 @@ function deleteCampaign(idx) {
 }
 
 function setupOptions() {
-    api.groups.summary()
+    var groupsReq = api.groups.summary()
         .success(function (summaries) {
             groups = summaries.groups
             if (groups.length == 0) {
@@ -174,14 +174,14 @@ function setupOptions() {
                     obj.title = obj.num_targets + " targets"
                     return obj
                 });
-                console.log(group_s2)
                 $("#users.form-control").select2({
                     placeholder: "Select Groups",
                     data: group_s2,
                 });
             }
         });
-    api.templates.get()
+
+    var templatesReq = api.templates.get()
         .success(function (templates) {
             if (templates.length == 0) {
                 modalError("No templates found!")
@@ -202,7 +202,8 @@ function setupOptions() {
                 }
             }
         });
-    api.pages.get()
+
+    var pagesReq = api.pages.get()
         .success(function (pages) {
             if (pages.length == 0) {
                 modalError("No pages found!")
@@ -223,7 +224,8 @@ function setupOptions() {
                 }
             }
         });
-    api.SMTP.get()
+
+    var smtpReq = api.SMTP.get()
         .success(function (profiles) {
             if (profiles.length == 0) {
                 modalError("No profiles found!")
@@ -244,19 +246,28 @@ function setupOptions() {
                 }
             }
         });
+
+    return $.when(groupsReq, templatesReq, pagesReq, smtpReq);
 }
 
 function edit(campaign) {
+    $("#campaignModalLabel").text("New Campaign")
     setupOptions();
 }
 
 function copy(idx) {
-    setupOptions();
-    // Set our initial values
-    api.campaignId.get(campaigns[idx].id)
-        .success(function (campaign) {
+    $("#campaignModalLabel").text("Copy Campaign")
+    $("#modal\\.flashes").empty();
+    // Ensure the modal opens even if field-prefill later errors.
+    $("#modal").modal("show")
+
+    $.when(setupOptions(), api.campaignId.get(campaigns[idx].id))
+        .done(function (_opts, campaignResp) {
+            var campaign = campaignResp[0]
             $("#name").val("Copy of " + campaign.name)
-            if (!campaign.template.id) {
+            $("#url").val(campaign.url)
+
+            if (!campaign.template || !campaign.template.id) {
                 $("#template").val("").change();
                 $("#template").select2({
                     placeholder: campaign.template.name
@@ -265,7 +276,7 @@ function copy(idx) {
                 $("#template").val(campaign.template.id.toString());
                 $("#template").trigger("change.select2")
             }
-            if (!campaign.page.id) {
+            if (!campaign.page || !campaign.page.id) {
                 $("#page").val("").change();
                 $("#page").select2({
                     placeholder: campaign.page.name
@@ -274,7 +285,7 @@ function copy(idx) {
                 $("#page").val(campaign.page.id.toString());
                 $("#page").trigger("change.select2")
             }
-            if (!campaign.smtp.id) {
+            if (!campaign.smtp || !campaign.smtp.id) {
                 $("#profile").val("").change();
                 $("#profile").select2({
                     placeholder: campaign.smtp.name
@@ -283,11 +294,33 @@ function copy(idx) {
                 $("#profile").val(campaign.smtp.id.toString());
                 $("#profile").trigger("change.select2")
             }
-            $("#url").val(campaign.url)
+
+            var launchDate = campaign.launch_date ? moment.utc(campaign.launch_date).local() : moment()
+            var launchPicker = $("#launch_date").data("DateTimePicker")
+            if (launchPicker && launchPicker.date) {
+                launchPicker.date(launchDate)
+            } else {
+                $("#launch_date").val(launchDate.format("MMMM Do YYYY, h:mm a"))
+            }
+
+            var sendByDate = campaign.send_by_date ? moment.utc(campaign.send_by_date).local() : null
+            var sendByPicker = $("#send_by_date").data("DateTimePicker")
+            if (sendByPicker && sendByPicker.date) {
+                sendByPicker.date(sendByDate)
+            } else {
+                $("#send_by_date").val(sendByDate ? sendByDate.format("MMMM Do YYYY, h:mm a") : "")
+            }
+
+            var groupIds = (campaign.groups || []).map(function (g) { return g.id.toString() })
+            $("#users").val(groupIds).trigger("change")
         })
-        .error(function (data) {
+        .fail(function (xhr, _status, err) {
+            var message = err || "Error copying campaign"
+            if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message
+            }
             $("#modal\\.flashes").empty().append("<div style=\"text-align:center\" class=\"alert alert-danger\">\
-            <i class=\"fa fa-exclamation-circle\"></i> " + data.responseJSON.message + "</div>")
+            <i class=\"fa fa-exclamation-circle\"></i> " + message + "</div>")
         })
 }
 
@@ -352,7 +385,7 @@ $(document).ready(function () {
                         targets: "no-sort"
                     }],
                     order: [
-                        [1, "desc"]
+                        [3, "desc"]
                     ]
                 });
                 archivedCampaignsTable = $("#campaignTableArchive").DataTable({
@@ -361,7 +394,7 @@ $(document).ready(function () {
                         targets: "no-sort"
                     }],
                     order: [
-                        [1, "desc"]
+                        [3, "desc"]
                     ]
                 });
                 rows = {
@@ -383,21 +416,24 @@ $(document).ready(function () {
 
                     var groupNames = (campaign.groups || []).map(function(g){ return escapeHtml(g.name); }).join(", ");
                     var sendingProfile = campaign.smtp ? escapeHtml(campaign.smtp.name) : "";
+                    var actions = "<div class='campaign-actions btn-group btn-group-sm pull-right' role='group' style='white-space:nowrap'>\
+                    <a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>\
+                    <i class='fa fa-bar-chart'></i>\
+                    </a>\
+                    <button class='btn btn-primary' data-toggle='modal' data-backdrop='static' data-target='#modal' data-toggle='tooltip' data-placement='left' title='Copy Campaign' onclick='copy(" + i + ")'>\
+                    <i class='fa fa-copy'></i>\
+                    </button>\
+                    <button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='Delete Campaign'>\
+                    <i class='fa fa-trash-o'></i>\
+                    </button>\
+                    </div>"
                     var row = [
                         escapeHtml(campaign.name),
                         groupNames,
                         sendingProfile,
                         moment(campaign.created_date).format('MMMM Do YYYY, h:mm:ss a'),
                         "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + campaign.status + "</span>",
-                        "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>\
-                    <i class='fa fa-bar-chart'></i>\
-                    </a>\
-            <span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Copy Campaign' onclick='copy(" + i + ")'>\
-                    <i class='fa fa-copy'></i>\
-                    </button></span>\
-                    <button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='Delete Campaign'>\
-                    <i class='fa fa-trash-o'></i>\
-                    </button></div>"
+                        actions
                     ];
                     if (campaign.status == 'Completed') {
                         rows['archived'].push(row)

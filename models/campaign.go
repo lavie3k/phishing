@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"net/url"
+	"strings"
 	"time"
 
 	log "github.com/gophish/gophish/logger"
@@ -131,6 +132,26 @@ var ErrInvalidSendByDate = errors.New("The launch date must be before the \"send
 // RecipientParameter is the URL parameter that points to the result ID for a recipient.
 const RecipientParameter = "rid"
 
+func ensureGroupCampaignsTable() {
+	if db == nil {
+		return
+	}
+	driver := ""
+	if db.Dialect() != nil {
+		driver = strings.ToLower(db.Dialect().GetName())
+	}
+	switch driver {
+	case "sqlite3", "sqlite":
+		_ = db.Exec(`CREATE TABLE IF NOT EXISTS "group_campaigns" ("group_id" bigint,"campaign_id" bigint );`).Error
+		_ = db.Exec(`CREATE INDEX IF NOT EXISTS "idx_group_campaigns_group_id" ON "group_campaigns" ("group_id");`).Error
+		_ = db.Exec(`CREATE INDEX IF NOT EXISTS "idx_group_campaigns_campaign_id" ON "group_campaigns" ("campaign_id");`).Error
+	case "mysql":
+		_ = db.Exec("CREATE TABLE IF NOT EXISTS `group_campaigns` (group_id bigint,campaign_id bigint );").Error
+		_ = db.Exec("CREATE INDEX `idx_group_campaigns_group_id` ON `group_campaigns` (group_id);").Error
+		_ = db.Exec("CREATE INDEX `idx_group_campaigns_campaign_id` ON `group_campaigns` (campaign_id);").Error
+	}
+}
+
 // Validate checks to make sure there are no invalid fields in a submitted campaign
 func (c *Campaign) Validate() error {
 	switch {
@@ -228,6 +249,17 @@ func (c *Campaign) getDetails() error {
 		log.Warn(err)
 		return err
 	}
+	// Load groups associated with this campaign (if supported by DB schema).
+	ensureGroupCampaignsTable()
+	var groups []Group
+	err = db.Table("group_campaigns").Select("groups.id, groups.name").
+		Joins("JOIN groups ON groups.id = group_campaigns.group_id").
+		Where("group_campaigns.campaign_id = ?", c.Id).Scan(&groups).Error
+	if err != nil {
+		log.Warnf("%s: unable to load groups for campaign", err)
+	} else {
+		c.Groups = groups
+	}
 	return nil
 }
 
@@ -324,6 +356,7 @@ func GetCampaigns(uid int64) ([]Campaign, error) {
 func GetCampaignSummaries(uid int64) (CampaignSummaries, error) {
 	overview := CampaignSummaries{}
 	cs := []CampaignSummary{}
+	ensureGroupCampaignsTable()
 	// Get the basic campaign information
 	query := db.Table("campaigns").Where("user_id = ?", uid)
 	query = query.Select("id, name, created_date, launch_date, send_by_date, completed_date, status")
@@ -334,6 +367,7 @@ func GetCampaignSummaries(uid int64) (CampaignSummaries, error) {
 	}
 	// Bổ sung thông tin Groups và SMTP cho từng campaign summary
 	for i := range cs {
+		cs[i].Groups = []Group{}
 		// Lấy Groups
 		var groups []Group
 		err := db.Table("group_campaigns").Select("groups.id, groups.name").
@@ -553,6 +587,17 @@ func PostCampaign(c *Campaign, uid int64) error {
 	if err != nil {
 		log.Error(err)
 		return err
+	}
+	// Persist the campaign→group mapping (best-effort for backward compatibility).
+	ensureGroupCampaignsTable()
+	for _, g := range c.Groups {
+		if g.Id == 0 {
+			continue
+		}
+		merr := db.Exec("INSERT INTO group_campaigns (group_id, campaign_id) VALUES (?, ?)", g.Id, c.Id).Error
+		if merr != nil {
+			log.Warnf("%s: unable to persist group_campaigns mapping", merr)
+		}
 	}
 	err = AddEvent(&Event{Message: "Campaign Created"}, c.Id)
 	if err != nil {
